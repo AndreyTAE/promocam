@@ -300,6 +300,35 @@
     .btn-google:active { opacity: .8; }
     .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
 
+    /* ── OFFLINE INDICATOR ── */
+    #offline-badge {
+      position: fixed;
+      top: 12px; right: 12px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      color: var(--warn, #f39c12);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 6px 12px;
+      z-index: 1000;
+      display: none;
+    }
+    #offline-badge.show { display: block; }
+    #queue-badge {
+      position: fixed;
+      top: 12px; left: 12px;
+      background: var(--accent);
+      color: var(--paper);
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 1px;
+      padding: 6px 12px;
+      z-index: 1000;
+      display: none;
+    }
+    #queue-badge.show { display: block; }
+
     /* ── ERROR ── */
     .error-msg {
       color: var(--accent);
@@ -385,6 +414,10 @@
   <span class="toast-green">✓</span> Фото сохранено на Drive
 </div>
 
+<!-- OFFLINE INDICATOR -->
+<div id="offline-badge">⚠ НЕТ СЕТИ</div>
+<div id="queue-badge">↑ <span id="queue-count">0</span> в очереди</div>
+
 <!-- Hidden canvas for stamping -->
 <canvas id="stamp-canvas" style="display:none;"></canvas>
 
@@ -394,6 +427,86 @@
 const GOOGLE_CLIENT_ID = '1049319811136-sbugf4h0583393in863g0nledflpbueh.apps.googleusercontent.com';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const DRIVE_FOLDER_NAME_PREFIX = 'Маршрут_';
+
+// ── OFFLINE QUEUE (IndexedDB) ──
+let db = null;
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('promocam', 1);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore('queue', { keyPath: 'id', autoIncrement: true });
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = () => reject();
+  });
+}
+async function queuePhoto(blob, filename, folderId) {
+  if (!db) return;
+  const arr = await blob.arrayBuffer();
+  const tx = db.transaction('queue', 'readwrite');
+  tx.objectStore('queue').add({ blob: arr, filename, folderId, ts: Date.now() });
+  updateQueueBadge();
+}
+async function getQueue() {
+  if (!db) return [];
+  return new Promise(resolve => {
+    const tx = db.transaction('queue', 'readonly');
+    const req = tx.objectStore('queue').getAll();
+    req.onsuccess = () => resolve(req.result);
+  });
+}
+async function deleteFromQueue(id) {
+  if (!db) return;
+  const tx = db.transaction('queue', 'readwrite');
+  tx.objectStore('queue').delete(id);
+}
+async function updateQueueBadge() {
+  const q = await getQueue();
+  const badge = document.getElementById('queue-badge');
+  const count = document.getElementById('queue-count');
+  if (q.length > 0) {
+    count.textContent = q.length;
+    badge.classList.add('show');
+  } else {
+    badge.classList.remove('show');
+  }
+}
+
+// ── NETWORK STATUS ──
+const offlineBadge = document.getElementById('offline-badge');
+function updateOnlineStatus() {
+  if (navigator.onLine) {
+    offlineBadge.classList.remove('show');
+    flushQueue();
+  } else {
+    offlineBadge.classList.add('show');
+  }
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+
+// ── FLUSH QUEUE ──
+async function flushQueue() {
+  if (!accessToken || !navigator.onLine) return;
+  const queue = await getQueue();
+  if (!queue.length) return;
+  for (const item of queue) {
+    try {
+      const blob = new Blob([item.blob], { type: 'image/jpeg' });
+      await uploadToDrive(blob, item.filename, item.folderId, true);
+      await deleteFromQueue(item.id);
+      await updateQueueBadge();
+    } catch(e) { break; }
+  }
+}
+
+// ── INIT DB ──
+openDB().then(d => {
+  db = d;
+  updateQueueBadge();
+  updateOnlineStatus();
+}).catch(() => {});
+
 
 // ── STATE ──
 let accessToken = null;
@@ -636,25 +749,21 @@ async function getOrCreateFolder(name) {
   return folder.id;
 }
 
-async function uploadToDrive(blob, filename) {
-  // Show toast as uploading
+async function uploadToDrive(blob, filename, folderId, fromQueue = false) {
+  if (!navigator.onLine) {
+    await queuePhoto(blob, filename, folderId || driveFolderId);
+    showToast('📦 Нет сети — сохранено на телефон');
+    return;
+  }
   try {
-    // Multipart upload
-    const metadata = { name: filename, parents: [driveFolderId] };
+    const metadata = { name: filename, parents: [folderId || driveFolderId] };
     const boundary = 'promo_boundary_' + Date.now();
     const metaStr = JSON.stringify(metadata);
-
     const bodyParts = [
       `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metaStr}\r\n`,
       `--${boundary}\r\nContent-Type: image/jpeg\r\n\r\n`,
     ];
-    const bodyBlob = new Blob([
-      bodyParts[0],
-      bodyParts[1],
-      blob,
-      `\r\n--${boundary}--`
-    ]);
-
+    const bodyBlob = new Blob([bodyParts[0], bodyParts[1], blob, `\r\n--${boundary}--`]);
     const resp = await fetch(
       'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
       {
@@ -666,11 +775,16 @@ async function uploadToDrive(blob, filename) {
         body: bodyBlob,
       }
     );
-
-    if (resp.ok) showToast('✓ Сохранено: ' + filename);
-    else showToast('⚠ Ошибка загрузки', true);
+    if (resp.ok) {
+      if (fromQueue) showToast('☁ Выгружено из очереди: ' + filename);
+      else showToast('✓ Сохранено: ' + filename);
+    } else {
+      if (!fromQueue) await queuePhoto(blob, filename, folderId || driveFolderId);
+      showToast('⚠ Ошибка — сохранено на телефон');
+    }
   } catch (e) {
-    showToast('⚠ Нет сети — сохранено локально', true);
+    if (!fromQueue) await queuePhoto(blob, filename, folderId || driveFolderId);
+    showToast('📦 Нет сети — сохранено на телефон');
   }
 }
 
