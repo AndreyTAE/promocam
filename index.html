@@ -492,8 +492,14 @@ async function flushQueue() {
   if (!queue.length) return;
   for (const item of queue) {
     try {
+      // Create folder if needed
+      let folderId = item.folderId;
+      if (!folderId) {
+        const folderName = item.filename.match(/^(Маршрут\d+)/)?.[1] || 'Маршрут';
+        folderId = await getOrCreateFolder(DRIVE_FOLDER_NAME_PREFIX + folderName.replace('Маршрут',''));
+      }
       const blob = new Blob([item.blob], { type: 'image/jpeg' });
-      await uploadToDrive(blob, item.filename, item.folderId, true);
+      await uploadToDrive(blob, item.filename, folderId, true);
       await deleteFromQueue(item.id);
       await updateQueueBadge();
     } catch(e) { break; }
@@ -583,17 +589,21 @@ document.getElementById('btn-start').addEventListener('click', async () => {
   driveFolderId = null;
   document.getElementById('photo-count').textContent = '0';
 
-  // Pre-create Drive folder
-  showScreen('uploading');
-  document.getElementById('upload-status').textContent = 'Создаём папку на Google Drive...';
-  try {
-    driveFolderId = await getOrCreateFolder(DRIVE_FOLDER_NAME_PREFIX + routeNumber);
-    await startCamera();
-    showScreen('camera');
-  } catch(e) {
-    showScreen('setup');
-    showError('setup-error', 'Ошибка Drive: ' + e.message);
+  // Pre-create Drive folder (skip if offline)
+  if (navigator.onLine) {
+    showScreen('uploading');
+    document.getElementById('upload-status').textContent = 'Создаём папку на Google Drive...';
+    try {
+      driveFolderId = await getOrCreateFolder(DRIVE_FOLDER_NAME_PREFIX + routeNumber);
+    } catch(e) {
+      // folder will be created when online
+      driveFolderId = null;
+    }
+  } else {
+    driveFolderId = null;
   }
+  await startCamera();
+  showScreen('camera');
 });
 
 document.getElementById('btn-back').addEventListener('click', () => {
