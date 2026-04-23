@@ -1,5 +1,9 @@
-const CACHE = 'promocam-v1';
-const ASSETS = ['/', '/index.html', '/manifest.json'];
+const CACHE = 'promocam-v2';
+const ASSETS = [
+  '/promocam/',
+  '/promocam/index.html',
+  '/promocam/manifest.json',
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -7,13 +11,16 @@ self.addEventListener('install', e => {
 });
 
 self.addEventListener('activate', e => {
-  e.waitUntil(clients.claim());
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => clients.claim())
+  );
 });
 
 self.addEventListener('fetch', e => {
-  // Network first for API calls, cache first for assets
-  if (e.request.url.includes('googleapis') || e.request.url.includes('nominatim')) {
-    return; // always network
+  if (e.request.url.includes('googleapis') || e.request.url.includes('nominatim') || e.request.url.includes('fonts.googleapis')) {
+    return;
   }
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
