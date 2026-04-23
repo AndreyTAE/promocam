@@ -558,7 +558,17 @@ function parseToken() {
   const hash = new URLSearchParams(location.hash.slice(1));
   if (hash.get('access_token')) {
     accessToken = hash.get('access_token');
+    const expires = Date.now() + (parseInt(hash.get('expires_in') || 3600) * 1000);
+    localStorage.setItem('promo_token', accessToken);
+    localStorage.setItem('promo_token_exp', expires);
     history.replaceState(null, '', location.pathname);
+    return true;
+  }
+  // Restore from localStorage
+  const saved = localStorage.getItem('promo_token');
+  const exp = parseInt(localStorage.getItem('promo_token_exp') || 0);
+  if (saved && exp > Date.now()) {
+    accessToken = saved;
     return true;
   }
   return false;
