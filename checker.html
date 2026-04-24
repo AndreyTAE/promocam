@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ПромоЧек — Проверка маршрута</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0a0a0a;--paper:#f5f0e8;--accent:#e8401c;--accent2:#1c6ee8;
+  --ok:#2ecc71;--warn:#f39c12;--bad:#e74c3c;
+  --mono:'JetBrains Mono',monospace;--display:'Bebas Neue',cursive;
+}
+html,body{min-height:100%;background:var(--ink);color:var(--paper);font-family:var(--mono);}
+
+header{padding:28px 40px 20px;border-bottom:1px solid #1a1a1a;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;}
+header h1{font-family:var(--display);font-size:48px;letter-spacing:3px;}
+header .sub{font-size:10px;letter-spacing:3px;color:var(--accent);text-transform:uppercase;}
+
+/* API KEY BAR */
+#api-bar{
+  background:#111;border-bottom:1px solid #1a1a1a;
+  padding:12px 40px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+#api-bar label{font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;white-space:nowrap;}
+#api-input{
+  flex:1;min-width:200px;background:transparent;border:none;border-bottom:1px solid #333;
+  color:var(--paper);font-family:var(--mono);font-size:12px;padding:4px 0;outline:none;
+}
+#api-input:focus{border-color:var(--accent);}
+#api-status{font-size:10px;letter-spacing:1px;white-space:nowrap;}
+#api-status.ok{color:var(--ok);}
+#api-status.bad{color:var(--bad);}
+
+/* MATERIAL SELECTOR */
+#material-bar{
+  padding:20px 40px;border-bottom:1px solid #1a1a1a;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+}
+#material-bar label{font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;}
+.mat-btn{
+  background:transparent;border:1px solid #333;color:#888;
+  font-family:var(--mono);font-size:11px;letter-spacing:1px;
+  padding:8px 16px;cursor:pointer;transition:all .15s;
+}
+.mat-btn:hover{border-color:#666;color:var(--paper);}
+.mat-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(232,64,28,.08);}
+
+/* MODE TOGGLE */
+#mode-bar{
+  padding:12px 40px;border-bottom:1px solid #1a1a1a;
+  display:flex;align-items:center;gap:16px;
+}
+#mode-bar label{font-size:10px;letter-spacing:2px;color:#888;text-transform:uppercase;}
+.mode-btn{
+  background:transparent;border:1px solid #333;color:#888;
+  font-family:var(--mono);font-size:10px;letter-spacing:1px;
+  padding:6px 14px;cursor:pointer;transition:all .15s;
+}
+.mode-btn.active{border-color:var(--accent2);color:var(--accent2);background:rgba(28,110,232,.08);}
+
+/* DROP ZONE */
+#drop-zone{
+  margin:32px auto;max-width:700px;
+  border:2px dashed #333;padding:48px 40px;text-align:center;
+  cursor:pointer;transition:border-color .2s,background .2s;position:relative;
+}
+#drop-zone:hover,#drop-zone.drag{border-color:var(--accent);background:rgba(232,64,28,.05);}
+#drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+.drop-icon{font-family:var(--display);font-size:64px;color:#222;line-height:1;}
+.drop-title{font-family:var(--display);font-size:28px;letter-spacing:2px;margin:12px 0 6px;}
+.drop-hint{font-size:11px;color:#666;letter-spacing:1px;}
+
+/* PROGRESS */
+#progress-wrap{display:none;max-width:700px;margin:0 auto 32px;padding:0 40px;}
+.prog-label{font-size:11px;letter-spacing:2px;color:#888;margin-bottom:8px;}
+.prog-bar-bg{height:3px;background:#1a1a1a;}
+.prog-bar{height:100%;background:var(--accent);width:0%;transition:width .3s;}
+.prog-status{font-size:11px;color:#666;margin-top:8px;}
+
+/* RESULTS */
+#results{display:none;max-width:960px;margin:0 auto;padding:0 40px 60px;}
+.score-block{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px;}
+.score-card{border:1px solid #1a1a1a;padding:16px;text-align:center;}
+.score-num{font-family:var(--display);font-size:44px;letter-spacing:2px;}
+.score-num.ok{color:var(--ok);}
+.score-num.warn{color:var(--warn);}
+.score-num.bad{color:var(--bad);}
+.score-label{font-size:9px;letter-spacing:2px;color:#666;text-transform:uppercase;margin-top:4px;}
+.verdict{padding:16px 20px;margin-bottom:32px;font-size:12px;letter-spacing:1px;line-height:1.8;}
+.verdict.ok{border-left:4px solid var(--ok);background:rgba(46,204,113,.05);}
+.verdict.bad{border-left:4px solid var(--bad);background:rgba(231,76,60,.05);}
+.verdict.warn{border-left:4px solid var(--warn);background:rgba(243,156,18,.05);}
+.section-title{font-family:var(--display);font-size:26px;letter-spacing:2px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid #1a1a1a;}
+
+/* PHOTO GRID */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:40px;}
+.photo-card{border:1px solid #1a1a1a;overflow:hidden;}
+.photo-card img{width:100%;height:130px;object-fit:cover;display:block;}
+.photo-card-body{padding:8px 10px;}
+.photo-card-name{font-size:9px;color:#666;letter-spacing:.5px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.photo-card-status{font-size:10px;letter-spacing:1px;font-weight:700;}
+.photo-card-status.ok{color:var(--ok);}
+.photo-card-status.bad{color:var(--bad);}
+.photo-card-status.warn{color:var(--warn);}
+.photo-card-status.pending{color:#444;}
+.photo-card-detail{font-size:9px;color:#666;margin-top:3px;line-height:1.5;}
+
+/* ISSUES */
+.issue-card{border:1px solid #1a1a1a;margin-bottom:12px;overflow:hidden;}
+.issue-header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#111;cursor:pointer;}
+.issue-badge{font-size:9px;letter-spacing:2px;padding:3px 8px;text-transform:uppercase;font-weight:700;}
+.issue-badge.dupe-photo{background:rgba(231,76,60,.2);color:var(--bad);}
+.issue-badge.dupe-coord{background:rgba(243,156,18,.2);color:var(--warn);}
+.issue-badge.dupe-time{background:rgba(243,156,18,.2);color:var(--warn);}
+.issue-badge.no-material{background:rgba(231,76,60,.15);color:var(--bad);}
+.issue-badge.bad-quality{background:rgba(243,156,18,.15);color:var(--warn);}
+.issue-title{font-size:11px;letter-spacing:1px;flex:1;}
+.issue-body{padding:14px;display:none;}
+.issue-body.open{display:block;}
+.issue-photos{display:flex;gap:10px;flex-wrap:wrap;}
+.issue-photo{width:130px;}
+.issue-photo img{width:100%;height:90px;object-fit:cover;}
+.issue-photo-label{font-size:9px;color:#666;padding:3px 0;letter-spacing:.5px;}
+.issue-meta{font-size:11px;color:#888;margin-bottom:10px;line-height:1.8;}
+
+#reset-btn{
+  display:block;margin:0 auto 40px;
+  background:transparent;border:1px solid #333;color:#888;
+  font-family:var(--mono);font-size:11px;letter-spacing:2px;
+  padding:10px 24px;cursor:pointer;text-transform:uppercase;
+  transition:all .15s;
+}
+#reset-btn:hover{border-color:var(--paper);color:var(--paper);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>ПРОМОЧЕК</h1>
+  <span class="sub">Антифрод + AI проверка материалов</span>
+</header>
+
+<!-- API KEY -->
+<div id="api-bar">
+  <label>Gemini API Key:</label>
+  <input type="password" id="api-input" placeholder="AIzaSy...">
+  <span id="api-status"></span>
+</div>
+
+<!-- MATERIAL SELECTOR -->
+<div id="material-bar">
+  <label>Материал:</label>
+  <button class="mat-btn" data-mat="krokodil">Крокодил 6в1</button>
+  <button class="mat-btn" data-mat="d1">Д1 — Уведомление</button>
+  <button class="mat-btn" data-mat="d2">Д2 — Объявление</button>
+  <button class="mat-btn" data-mat="stm">СТМ+ХОЛ</button>
+  <span style="font-size:10px;color:#555;letter-spacing:1px;margin-left:8px;">← выбери один или несколько</span>
+</div>
+
+<!-- MODE -->
+<div id="mode-bar">
+  <label>Режим:</label>
+  <button class="mode-btn active" data-mode="dupes">Поиск дублей</button>
+  <button class="mode-btn" data-mode="ai">AI проверка материала</button>
+  <button class="mode-btn" data-mode="both">Всё вместе</button>
+</div>
+
+<!-- DROP -->
+<div id="drop-zone">
+  <input type="file" id="file-input" multiple accept="image/*">
+  <div class="drop-icon">📁</div>
+  <div class="drop-title">ЗАГРУЗИ ФОТО МАРШРУТА</div>
+  <div class="drop-hint">Перетащи файлы или нажми для выбора · JPG/PNG</div>
+</div>
+
+<div id="progress-wrap">
+  <div class="prog-label">АНАЛИЗ</div>
+  <div class="prog-bar-bg"><div class="prog-bar" id="prog-bar"></div></div>
+  <div class="prog-status" id="prog-status">Читаем файлы...</div>
+</div>
+
+<div id="results">
+  <div class="score-block" id="score-block"></div>
+  <div class="verdict" id="verdict"></div>
+  <button id="reset-btn" onclick="resetAll()">← НОВАЯ ПРОВЕРКА</button>
+
+  <div id="ai-section" style="display:none">
+    <div class="section-title">AI ПРОВЕРКА МАТЕРИАЛА</div>
+    <div class="photo-grid" id="ai-grid"></div>
+  </div>
+
+  <div id="issues-section" style="display:none">
+    <div class="section-title">ПОДОЗРИТЕЛЬНЫЕ ФОТО</div>
+    <div id="issues-list"></div>
+  </div>
+</div>
+
+<script>
+// ── MATERIALS ──
+const MATERIALS = {
+  none: { name: 'Без проверки', prompt: '' },
+  krokodil: {
+    name: 'Крокодил 6в1',
+    prompt: `Это листовка-крокодил с 6 рекламными блоками на одном листе. На ней должны быть: ремонт стиральных машин (телефон +7 930 502 40 33), ремонт холодильников и посудомоечных машин (телефон +7 968 233 75 47), ремонт окон (телефон +7 383 207 88 02), ремонт варочных панелей (телефон 7-383-383-47-86), Мастер электрик Сергей (+7 994 252 30 95), Мастер сантехник Дмитрий (7-968-233-62-76). Цветной листок с иллюстрациями техники.`
+  },
+  d1: {
+    name: 'Д1 — Уведомление',
+    prompt: `Это белый листок формата А4 с заголовком "УВЕДОМЛЕНИЕ" и подзаголовком "Уважаемые Жильцы!". Содержит информацию о заявках на ремонт. Номер диспетчера: +7 (383) 207-80-06. Строгий чёрно-белый дизайн, только текст без картинок.`
+  },
+  d2: {
+    name: 'Д2 — Объявление',
+    prompt: `Это белый листок "Объявление для собственников жилья". Содержит три телефона: +7 (383) 207-82-51 (ремонт бытовой техники), +7 (383) 207-80-32 (электрика, сантехника, ремонт), +7 (383) 207-80-91 (ремонт окон). Подписан: Главный инженер — Логинов Михаил Викторович. Чёрно-белый, только текст.`
+  },
+  stm: {
+    name: 'СТМ+ХОЛ',
+    prompt: `Это рукописное объявление на белом листе. Две части: верхняя — ремонт холодильников, Михаил, телефон +7 958 610 93 85, скидка пенсионерам 25%; нижняя — ремонт стиральных машин, Павел, телефон +7 901 247 01 75. Есть рисунки холодильника и стиральной машины от руки.`
+  }
+};
+
+let selectedMats = new Set();
+let selectedMode = 'dupes';
+let geminiKey = '';
+
+// ── API KEY ──
+const apiInput = document.getElementById('api-input');
+const apiStatus = document.getElementById('api-status');
+
+// Load saved key
+const savedKey = localStorage.getItem('gemini_key');
+if (savedKey) { apiInput.value = savedKey; geminiKey = savedKey; apiStatus.textContent = '✓ ключ сохранён'; apiStatus.className = 'ok'; }
+
+apiInput.addEventListener('change', () => {
+  geminiKey = apiInput.value.trim();
+  localStorage.setItem('gemini_key', geminiKey);
+  apiStatus.textContent = geminiKey ? '✓ сохранён' : '';
+  apiStatus.className = geminiKey ? 'ok' : '';
+});
+
+// ── MATERIAL BUTTONS (multi-select) ──
+document.querySelectorAll('.mat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const mat = btn.dataset.mat;
+    if (selectedMats.has(mat)) {
+      selectedMats.delete(mat);
+      btn.classList.remove('active');
+    } else {
+      selectedMats.add(mat);
+      btn.classList.add('active');
+    }
+  });
+});
+
+// ── MODE BUTTONS ──
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedMode = btn.dataset.mode;
+  });
+});
+
+// ── DROP ZONE ──
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag'); handleFiles([...e.dataTransfer.files].filter(f => f.type.startsWith('image/'))); });
+fileInput.addEventListener('change', e => handleFiles([...e.target.files]));
+
+// ── PARSE FILENAME ──
+function parseMeta(filename) {
+  const m = filename.match(/(\d{8})_(\d{6})/);
+  if (!m) return null;
+  const d = m[1], t = m[2];
+  return { date: `${d.slice(6,8)}.${d.slice(4,6)}.${d.slice(0,4)}`, time: `${t.slice(0,2)}:${t.slice(2,4)}:${t.slice(4,6)}`, ts: parseInt(d+t) };
+}
+
+// ── IMAGE HASH ──
+async function imageHash(file) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const size = 16, canvas = document.createElement('canvas');
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, size, size);
+      const data = ctx.getImageData(0, 0, size, size).data;
+      const gray = [];
+      for (let i = 0; i < size*size; i++) gray.push(0.299*data[i*4] + 0.587*data[i*4+1] + 0.114*data[i*4+2]);
+      const avg = gray.reduce((a,b)=>a+b,0)/gray.length;
+      URL.revokeObjectURL(url);
+      resolve(gray.map(v => v >= avg ? 1 : 0));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
+}
+
+function hammingDistance(h1, h2) {
+  if (!h1 || !h2) return 256;
+  let d = 0;
+  for (let i = 0; i < h1.length; i++) if (h1[i] !== h2[i]) d++;
+  return d;
+}
+
+// ── FILE TO BASE64 ──
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ── GEMINI AI CHECK ──
+async function checkWithGemini(file, materialPrompt) {
+  if (!geminiKey) return { ok: null, label: 'Нет ключа', detail: '' };
+  try {
+    const base64 = await fileToBase64(file);
+    const prompt = `Look at this photo of a bulletin board in a residential building entrance.
+
+I am looking for specific advertising materials on the board. Here is what I am looking for:
+${materialPrompt}
+
+Respond ONLY with a valid JSON object, no other text, no markdown, no explanation:
+{"found": true, "quality": "good", "reason": "brief explanation"}
+
+Rules:
+- found: true if the described material is visible on the photo, false if not found
+- quality: "good" if leaflet is intact and clearly visible, "partial" if only partially visible or damaged, "bad" if not found or completely unreadable
+- reason: one short sentence in Russian explaining your decision`;
+
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inline_data: { mime_type: file.type || 'image/jpeg', data: base64 } },
+            { text: prompt }
+          ]
+        }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 200 }
+      })
+    });
+
+    const data = await resp.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    // Robust JSON extraction
+    let clean = text.replace(/```json|```/g, '').trim();
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('Нет JSON в ответе');
+    const parsed = JSON.parse(jsonMatch[0]);
+    return {
+      ok: parsed.found && parsed.quality === 'good',
+      found: parsed.found,
+      quality: parsed.quality,
+      label: parsed.found ? (parsed.quality === 'good' ? '✓ МАТЕРИАЛ OK' : '⚠ ЧАСТИЧНО') : '✗ НЕТ МАТЕРИАЛА',
+      detail: parsed.reason || ''
+    };
+  } catch(e) {
+    return { ok: null, label: '⚠ Ошибка AI', detail: e.message };
+  }
+}
+
+// ── MAIN ──
+async function handleFiles(files) {
+  if (!files.length) return;
+
+  const doAI = (selectedMode === 'ai' || selectedMode === 'both') && selectedMats.size > 0;
+  const doDupes = selectedMode === 'dupes' || selectedMode === 'both';
+
+  if (doAI && !geminiKey) {
+    alert('Введите Gemini API ключ для AI проверки');
+    return;
+  }
+  if ((selectedMode === 'ai' || selectedMode === 'both') && selectedMats.size === 0) {
+    alert('Выберите хотя бы один материал для AI проверки');
+    return;
+  }
+
+  dropZone.style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'block';
+
+  const setProgress = (pct, msg) => {
+    document.getElementById('prog-bar').style.width = pct + '%';
+    document.getElementById('prog-status').textContent = msg;
+  };
+
+  const photos = [];
+  for (let i = 0; i < files.length; i++) {
+    setProgress(Math.round(i/files.length*30), `Читаем ${i+1}/${files.length}: ${files[i].name}`);
+    const file = files[i];
+    const meta = parseMeta(file.name);
+    const url = URL.createObjectURL(file);
+    photos.push({ file, name: file.name, url, meta, aiResult: null });
+  }
+
+  // Hashes for dupe detection
+  if (doDupes) {
+    for (let i = 0; i < photos.length; i++) {
+      photos[i].hash = await imageHash(photos[i].file);
+      setProgress(30 + Math.round(i/photos.length*20), `Хэш ${i+1}/${photos.length}`);
+    }
+  }
+
+  // AI checks
+  if (doAI) {
+    const matPrompt = [...selectedMats].map(m => MATERIALS[m].prompt).join('\n\nТакже на стенде может быть: ');
+    // Show AI grid immediately with pending state
+    document.getElementById('results').style.display = 'block';
+    document.getElementById('ai-section').style.display = 'block';
+    renderAIGrid(photos);
+
+    for (let i = 0; i < photos.length; i++) {
+      setProgress(50 + Math.round(i/photos.length*45), `AI проверка ${i+1}/${photos.length}: ${photos[i].name}`);
+      photos[i].aiResult = await checkWithGemini(photos[i].file, matPrompt);
+      updateAICard(i, photos[i]);
+      // Small delay to avoid rate limiting
+      if (i < photos.length - 1) await new Promise(r => setTimeout(r, 300));
+    }
+  }
+
+  setProgress(100, 'Готово!');
+
+  // Dupe detection
+  const issues = [];
+  if (doDupes) {
+    const flagged = new Set();
+    for (let i = 0; i < photos.length; i++) {
+      for (let j = i+1; j < photos.length; j++) {
+        const dist = hammingDistance(photos[i].hash, photos[j].hash);
+        if (dist < 20) {
+          const key = `${i}_${j}`;
+          if (!flagged.has(key)) {
+            flagged.add(key);
+            issues.push({ type: 'dupe-photo', label: 'ДУБЛЬ ФОТО', title: `Похожие: ${photos[i].name} и ${photos[j].name}`, photos: [photos[i], photos[j]], detail: `Визуальное сходство ${Math.round((1-dist/256)*100)}%` });
+          }
+        }
+      }
+    }
+    const sorted = [...photos].sort((a,b) => (a.meta?.ts||0) - (b.meta?.ts||0));
+    for (let i = 0; i < sorted.length-1; i++) {
+      if (!sorted[i].meta || !sorted[i+1].meta) continue;
+      const diff = Math.abs(sorted[i].meta.ts - sorted[i+1].meta.ts);
+      if (diff < 10 && diff > 0) {
+        issues.push({ type: 'dupe-time', label: 'ДУБЛЬ ВРЕМЕНИ', title: `Разница ${diff}с: ${sorted[i].name}`, photos: [sorted[i], sorted[i+1]], detail: 'Фото сделаны почти одновременно' });
+      }
+    }
+  }
+
+  setTimeout(() => renderResults(photos, issues, doAI, doDupes), 300);
+}
+
+// ── RENDER AI GRID ──
+function renderAIGrid(photos) {
+  const grid = document.getElementById('ai-grid');
+  grid.innerHTML = '';
+  photos.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+    card.id = `ai-card-${i}`;
+    card.innerHTML = `
+      <img src="${p.url}" alt="${p.name}">
+      <div class="photo-card-body">
+        <div class="photo-card-name">${p.name}</div>
+        <div class="photo-card-status pending" id="ai-status-${i}">⏳ Проверяем...</div>
+        <div class="photo-card-detail" id="ai-detail-${i}"></div>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function updateAICard(i, photo) {
+  const statusEl = document.getElementById(`ai-status-${i}`);
+  const detailEl = document.getElementById(`ai-detail-${i}`);
+  if (!statusEl || !photo.aiResult) return;
+  const r = photo.aiResult;
+  statusEl.textContent = r.label;
+  statusEl.className = 'photo-card-status ' + (r.ok === true ? 'ok' : r.ok === false ? 'bad' : 'warn');
+  detailEl.textContent = r.detail;
+}
+
+// ── RENDER RESULTS ──
+function renderResults(photos, issues, doAI, doDupes) {
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('results').style.display = 'block';
+
+  const total = photos.length;
+  let aiOk = 0, aiBad = 0, aiWarn = 0;
+  if (doAI) {
+    photos.forEach(p => {
+      if (p.aiResult?.ok === true) aiOk++;
+      else if (p.aiResult?.ok === false) aiBad++;
+      else aiWarn++;
+    });
+  }
+
+  const dupeCount = issues.length;
+  const cleanPct = Math.round((total - aiBad - dupeCount) / total * 100);
+
+  document.getElementById('score-block').innerHTML = `
+    <div class="score-card">
+      <div class="score-num ${cleanPct>=90?'ok':cleanPct>=70?'warn':'bad'}">${cleanPct}%</div>
+      <div class="score-label">Чистота</div>
+    </div>
+    <div class="score-card">
+      <div class="score-num">${total}</div>
+      <div class="score-label">Всего фото</div>
+    </div>
+    ${doAI ? `
+    <div class="score-card">
+      <div class="score-num ok">${aiOk}</div>
+      <div class="score-label">Материал OK</div>
+    </div>
+    <div class="score-card">
+      <div class="score-num ${aiBad>0?'bad':'ok'}">${aiBad}</div>
+      <div class="score-label">Нет материала</div>
+    </div>` : `
+    <div class="score-card">
+      <div class="score-num ok">${total - dupeCount}</div>
+      <div class="score-label">Чистых</div>
+    </div>
+    <div class="score-card">
+      <div class="score-num ${dupeCount>0?'bad':'ok'}">${dupeCount}</div>
+      <div class="score-label">Дублей</div>
+    </div>`}
+  `;
+
+  const verdictEl = document.getElementById('verdict');
+  if (aiBad === 0 && dupeCount === 0) {
+    verdictEl.className = 'verdict ok';
+    verdictEl.textContent = `✓ Маршрут чистый. Все ${total} фото прошли проверку.`;
+  } else if (cleanPct >= 80) {
+    verdictEl.className = 'verdict warn';
+    verdictEl.textContent = `⚠ В целом ок (${cleanPct}%), но есть вопросы: ${aiBad} фото без материала, ${dupeCount} дублей.`;
+  } else {
+    verdictEl.className = 'verdict bad';
+    verdictEl.textContent = `✗ Маршрут под вопросом. ${aiBad} фото без материала + ${dupeCount} дублей из ${total}.`;
+  }
+
+  if (doAI) {
+    document.getElementById('ai-section').style.display = 'block';
+    renderAIGrid(photos);
+    photos.forEach((p, i) => updateAICard(i, p));
+  }
+
+  if (doDupes && issues.length > 0) {
+    document.getElementById('issues-section').style.display = 'block';
+    const list = document.getElementById('issues-list');
+    list.innerHTML = '';
+    issues.forEach((issue, idx) => {
+      const card = document.createElement('div');
+      card.className = 'issue-card';
+      card.innerHTML = `
+        <div class="issue-header" onclick="toggleIssue(${idx})">
+          <span class="issue-badge ${issue.type}">${issue.label}</span>
+          <span class="issue-title">${issue.title}</span>
+          <span style="color:#444;font-size:11px">▼</span>
+        </div>
+        <div class="issue-body" id="issue-body-${idx}">
+          <div class="issue-meta">${issue.detail}</div>
+          <div class="issue-photos">
+            ${issue.photos.map(p => `<div class="issue-photo"><img src="${p.url}"><div class="issue-photo-label">${p.name}</div><div class="issue-photo-label">${p.meta?.time||''}</div></div>`).join('')}
+          </div>
+        </div>
+      `;
+      list.appendChild(card);
+    });
+  }
+}
+
+window.toggleIssue = idx => {
+  document.getElementById(`issue-body-${idx}`).classList.toggle('open');
+};
+
+window.resetAll = () => {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('progress-wrap').style.display = 'none';
+  document.getElementById('ai-section').style.display = 'none';
+  document.getElementById('issues-section').style.display = 'none';
+  document.getElementById('ai-grid').innerHTML = '';
+  document.getElementById('issues-list').innerHTML = '';
+  document.getElementById('drop-zone').style.display = 'block';
+  document.getElementById('prog-bar').style.width = '0%';
+  fileInput.value = '';
+};
+</script>
+</body>
+</html>
