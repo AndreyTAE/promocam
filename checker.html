@@ -421,7 +421,7 @@ async function handleFiles(files) {
       photos[i].aiResult = await checkWithGemini(photos[i].file, matPrompt);
       updateAICard(i, photos[i]);
       // Small delay to avoid rate limiting
-      if (i < photos.length - 1) await new Promise(r => setTimeout(r, 300));
+      if (i < photos.length - 1) await new Promise(r => setTimeout(r, 2000));
     }
   }
 
