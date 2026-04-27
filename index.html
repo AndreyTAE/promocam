@@ -210,11 +210,15 @@ startBtn.addEventListener('click', async () => {
 
 async function startCamera() {
   try {
+    photoCount = 0;
+    document.getElementById('counter').textContent = '0';
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
       audio: false
     });
-    document.getElementById('video').srcObject = stream;
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    await video.play();
     showScreen('camera');
     startClock();
   } catch(e) {
@@ -261,18 +265,13 @@ async function takePhoto() {
   // Draw watermark
   drawWatermark(ctx, canvas.width, canvas.height);
 
-  // Save to phone
+  // Save to phone - show preview with save button
   const filename = buildFilename();
   canvas.toBlob(blob => {
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
     photoCount++;
     document.getElementById('counter').textContent = photoCount;
-    showToast('✓ Сохранено: ' + filename);
+    showSaveToast(url, filename);
   }, 'image/jpeg', 0.92);
 }
 
@@ -324,8 +323,8 @@ function buildFilename() {
 function goBack() {
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
   if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
-  photoCount = 0;
-  document.getElementById('counter').textContent = '0';
+  const video = document.getElementById('video');
+  video.srcObject = null;
   showScreen('setup');
 }
 
@@ -343,6 +342,37 @@ function showToast(msg) {
   el.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function showSaveToast(url, filename) {
+  // Remove existing save bar if any
+  const existing = document.getElementById('save-bar');
+  if (existing) existing.remove();
+
+  const bar = document.createElement('div');
+  bar.id = 'save-bar';
+  bar.style.cssText = `
+    position:fixed;top:0;left:0;right:0;
+    background:rgba(0,0,0,.95);
+    display:flex;align-items:center;gap:12px;
+    padding:10px 16px;z-index:100;
+  `;
+  bar.innerHTML = `
+    <img src="${url}" style="width:48px;height:36px;object-fit:cover;flex-shrink:0;">
+    <span style="flex:1;font-size:10px;letter-spacing:1px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${filename}</span>
+    <a href="${url}" download="${filename}" style="
+      background:#e8401c;color:#f5f0e8;
+      font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:2px;
+      padding:8px 16px;text-decoration:none;white-space:nowrap;flex-shrink:0;
+    ">СОХРАНИТЬ</a>
+    <button onclick="document.getElementById('save-bar').remove()" style="
+      background:transparent;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;
+    ">✕</button>
+  `;
+  document.getElementById('camera-screen').appendChild(bar);
+
+  // Auto dismiss after 5 seconds
+  setTimeout(() => { if (bar.parentNode) bar.remove(); }, 5000);
 }
 
 // ── INIT ──
