@@ -4,379 +4,379 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>ПромоКам</title>
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --ink:#0a0a0a;
-  --paper:#f5f0e8;
-  --accent:#e8401c;
-  --mono:'JetBrains Mono',monospace;
-  --display:'Bebas Neue',cursive;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #000; color: #fff; font-family: -apple-system, sans-serif; height: 100vh; overflow: hidden; }
+
+#setup {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  height: 100vh; padding: 30px; background: #111;
 }
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap');
-
-html,body{height:100%;width:100%;overflow:hidden;background:var(--ink);color:var(--paper);font-family:var(--mono);}
-
-/* SCREENS */
-.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;transition:opacity .3s;}
-.screen.hidden{opacity:0;pointer-events:none;}
-
-/* ── SETUP SCREEN ── */
-#setup-screen{background:var(--ink);}
-.logo{font-family:var(--display);font-size:64px;letter-spacing:4px;line-height:1;text-align:center;}
-.logo-sub{font-size:10px;letter-spacing:4px;color:var(--accent);text-transform:uppercase;margin-top:4px;text-align:center;}
-.setup-form{width:100%;max-width:320px;margin-top:48px;}
-.field-label{font-size:10px;letter-spacing:3px;color:#666;text-transform:uppercase;margin-bottom:8px;}
-.route-input{
-  width:100%;background:transparent;
-  border:none;border-bottom:2px solid #333;
-  color:var(--paper);font-family:var(--display);font-size:56px;
-  letter-spacing:4px;text-align:center;padding:8px 0;outline:none;
-  transition:border-color .2s;
+#setup h1 { font-size: 28px; margin-bottom: 8px; }
+#setup p { color: #888; margin-bottom: 30px; font-size: 14px; }
+#setup input {
+  width: 100%; padding: 18px; font-size: 24px; text-align: center;
+  border: 2px solid #333; border-radius: 12px; background: #222; color: #fff;
+  margin-bottom: 16px; letter-spacing: 4px;
 }
-.route-input:focus{border-color:var(--accent);}
-.route-input::placeholder{color:#333;}
-.gps-status{
-  margin-top:16px;font-size:10px;letter-spacing:2px;text-align:center;
-  padding:8px;
-}
-.gps-status.searching{color:#666;}
-.gps-status.ok{color:#2ecc71;}
-.gps-status.error{color:var(--accent);}
-.start-btn{
-  width:100%;margin-top:32px;
-  background:var(--accent);border:none;
-  color:var(--paper);font-family:var(--display);
-  font-size:28px;letter-spacing:3px;padding:18px;
-  cursor:pointer;transition:opacity .2s;
-}
-.start-btn:active{opacity:.8;}
-.start-btn:disabled{background:#222;color:#444;cursor:not-allowed;}
-
-/* ── CAMERA SCREEN ── */
-#camera-screen{background:#000;padding:0;}
-
-#video{
-  position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;
+#setup input:focus { outline: none; border-color: #e53; }
+#setup button {
+  width: 100%; padding: 18px; font-size: 18px; font-weight: bold;
+  background: #e53; color: #fff; border: none; border-radius: 12px; cursor: pointer;
 }
 
-/* WATERMARK OVERLAY */
-#watermark{
-  position:absolute;bottom:0;left:0;right:0;
-  padding:12px 16px 20px;
-  background:linear-gradient(transparent, rgba(0,0,0,.85));
-  pointer-events:none;
-}
-.wm-route{font-family:var(--display);font-size:28px;letter-spacing:3px;color:var(--accent);line-height:1;}
-.wm-time{font-size:13px;letter-spacing:2px;color:var(--paper);margin-top:2px;}
-.wm-gps{font-size:11px;letter-spacing:1px;color:#4af;margin-top:2px;}
+#camera-view { display: none; position: relative; height: 100vh; }
+video { width: 100%; height: 100%; object-fit: cover; }
 
-/* SHUTTER */
-#shutter-wrap{
-  position:absolute;bottom:32px;left:0;right:0;
-  display:flex;align-items:center;justify-content:center;gap:32px;
-}
-#back-btn{
-  width:44px;height:44px;background:rgba(255,255,255,.1);border:none;
-  color:var(--paper);font-size:20px;cursor:pointer;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-}
-#shutter{
-  width:72px;height:72px;
-  background:var(--paper);border:4px solid rgba(255,255,255,.3);
-  border-radius:50%;cursor:pointer;transition:transform .1s,background .1s;
-  display:flex;align-items:center;justify-content:center;
-}
-#shutter:active{transform:scale(.9);background:#ccc;}
-.counter{
-  width:44px;height:44px;
-  font-family:var(--display);font-size:22px;color:var(--paper);
-  display:flex;align-items:center;justify-content:center;
+#overlay {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
 }
 
-/* FLASH */
-#flash{
-  position:absolute;inset:0;background:white;
-  opacity:0;pointer-events:none;transition:opacity .1s;
+#top-bar {
+  position: absolute; top: 0; left: 0; right: 0;
+  padding: 12px 16px; background: rgba(0,0,0,0.6);
+  display: flex; justify-content: space-between; align-items: center;
 }
-#flash.show{opacity:1;}
-
-/* TOAST */
-#toast{
-  position:fixed;bottom:120px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.85);color:var(--paper);
-  font-size:11px;letter-spacing:2px;padding:8px 20px;
-  opacity:0;transition:opacity .3s;white-space:nowrap;
-  pointer-events:none;
+#route-label { font-size: 18px; font-weight: bold; color: #e53; }
+#status { font-size: 13px; color: #aaa; }
+#queue-badge {
+  background: #e53; color: #fff; border-radius: 20px;
+  padding: 4px 10px; font-size: 13px; font-weight: bold;
+  display: none;
 }
-#toast.show{opacity:1;}
 
-/* CANVAS hidden */
-#canvas{display:none;}
+#gps-bar {
+  position: absolute; top: 54px; left: 0; right: 0;
+  padding: 6px 16px; background: rgba(0,0,0,0.5);
+  font-size: 12px; color: #0f0;
+}
+
+#bottom-bar {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 20px; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center; gap: 30px;
+}
+#shutter {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: #fff; border: 5px solid rgba(255,255,255,0.4);
+  cursor: pointer; pointer-events: all;
+  transition: transform 0.1s;
+}
+#shutter:active { transform: scale(0.9); }
+#shutter.disabled { background: #555; }
+
+#counter { font-size: 14px; color: #aaa; text-align: center; min-width: 60px; }
+
+#notification {
+  position: absolute; top: 100px; left: 16px; right: 16px;
+  padding: 12px 16px; border-radius: 10px; font-size: 14px;
+  display: none; z-index: 10;
+}
+#notification.success { background: rgba(0,200,0,0.85); }
+#notification.error { background: rgba(220,50,50,0.85); }
+#notification.warning { background: rgba(200,150,0,0.85); }
+
+canvas { display: none; }
 </style>
 </head>
 <body>
 
-<!-- SETUP -->
-<div class="screen" id="setup-screen">
-  <div class="logo">ПРОМО<br>КАМ</div>
-  <div class="logo-sub">контроль расклейки</div>
-
-  <div class="setup-form">
-    <div class="field-label">Номер маршрута</div>
-    <input class="route-input" id="route-input" type="tel" placeholder="001" maxlength="6" inputmode="numeric">
-    <div class="gps-status searching" id="gps-status">⊙ Получаем GPS...</div>
-    <button class="start-btn" id="start-btn" disabled>ОТКРЫТЬ КАМЕРУ →</button>
-  </div>
+<!-- Экран ввода маршрута -->
+<div id="setup">
+  <h1>📸 ПромоКам</h1>
+  <p>Введите номер маршрута</p>
+  <input type="text" id="route-input" placeholder="001" maxlength="6" inputmode="numeric">
+  <button onclick="startCamera()">Начать съёмку</button>
 </div>
 
-<!-- CAMERA -->
-<div class="screen hidden" id="camera-screen">
+<!-- Экран камеры -->
+<div id="camera-view">
   <video id="video" autoplay playsinline muted></video>
-
-  <div id="watermark">
-    <div class="wm-route" id="wm-route">МАРШРУТ —</div>
-    <div class="wm-time" id="wm-time">—</div>
-    <div class="wm-gps" id="wm-gps">GPS...</div>
+  
+  <div id="overlay">
+    <div id="top-bar">
+      <span id="route-label">Маршрут: —</span>
+      <span id="queue-badge">↑ 0</span>
+      <span id="status">●</span>
+    </div>
+    <div id="gps-bar" id="gps-info">GPS: определяем...</div>
+    <div id="notification"></div>
+    <div id="bottom-bar">
+      <div id="counter">0 фото</div>
+      <div id="shutter" onclick="takePhoto()"></div>
+      <div style="min-width:60px"></div>
+    </div>
   </div>
-
-  <div id="shutter-wrap">
-    <button id="back-btn" onclick="goBack()">←</button>
-    <button id="shutter" onclick="takePhoto()"></button>
-    <div class="counter" id="counter">0</div>
-  </div>
-
-  <div id="flash"></div>
 </div>
 
-<div id="toast"></div>
 <canvas id="canvas"></canvas>
 
 <script>
-// ── STATE ──
+const WORKER_URL = 'https://promocam.troeglazoofjob.workers.dev';
+
 let routeNumber = '';
-let gpsCoords = null;
 let photoCount = 0;
+let gpsData = { lat: null, lon: null, accuracy: null };
+let uploadQueue = [];
+let isUploading = false;
 let stream = null;
-let clockInterval = null;
-let gpsWatchId = null;
-let gpsAccuracy = null;
 
-// ── GPS ──
-const gpsStatusEl = document.getElementById('gps-status');
-const startBtn = document.getElementById('start-btn');
+// Загружаем очередь из localStorage
+function loadQueue() {
+  try {
+    const saved = localStorage.getItem('uploadQueue');
+    if (saved) uploadQueue = JSON.parse(saved);
+  } catch(e) {}
+  updateQueueBadge();
+}
 
+function saveQueue() {
+  try {
+    localStorage.setItem('uploadQueue', JSON.stringify(uploadQueue));
+  } catch(e) {}
+}
+
+function updateQueueBadge() {
+  const badge = document.getElementById('queue-badge');
+  if (uploadQueue.length > 0) {
+    badge.style.display = 'block';
+    badge.textContent = '↑ ' + uploadQueue.length;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// GPS
 function startGPS() {
   if (!navigator.geolocation) {
-    gpsStatusEl.className = 'gps-status error';
-    gpsStatusEl.textContent = '✗ GPS недоступен';
-    startBtn.disabled = false;
+    document.getElementById('gps-bar').textContent = 'GPS: не поддерживается';
     return;
   }
-
-  gpsWatchId = navigator.geolocation.watchPosition(
+  navigator.geolocation.watchPosition(
     pos => {
-      gpsCoords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
-      gpsAccuracy = Math.round(pos.coords.accuracy);
-      gpsStatusEl.className = 'gps-status ok';
-      gpsStatusEl.textContent = `✓ GPS: ±${gpsAccuracy}м`;
-      startBtn.disabled = !routeNumber.trim();
-      updateWatermark();
+      gpsData.lat = pos.coords.latitude.toFixed(6);
+      gpsData.lon = pos.coords.longitude.toFixed(6);
+      gpsData.accuracy = Math.round(pos.coords.accuracy);
+      document.getElementById('gps-bar').textContent = 
+        `GPS: ${gpsData.lat}, ${gpsData.lon} (±${gpsData.accuracy}м)`;
+      document.getElementById('gps-bar').style.color = gpsData.accuracy < 30 ? '#0f0' : '#ff0';
     },
     err => {
-      gpsStatusEl.className = 'gps-status error';
-      gpsStatusEl.textContent = '⚠ GPS недоступен — продолжить?';
-      startBtn.disabled = !routeNumber.trim();
+      document.getElementById('gps-bar').textContent = 'GPS: нет доступа';
+      document.getElementById('gps-bar').style.color = '#f00';
     },
-    { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
   );
 }
 
-// ── ROUTE INPUT ──
-document.getElementById('route-input').addEventListener('input', e => {
-  routeNumber = e.target.value.trim();
-  startBtn.disabled = !routeNumber || (!gpsCoords && gpsStatusEl.className.includes('searching'));
-});
+// Онлайн/офлайн статус
+function updateOnlineStatus() {
+  const status = document.getElementById('status');
+  if (navigator.onLine) {
+    status.textContent = '● онлайн';
+    status.style.color = '#0f0';
+    processQueue();
+  } else {
+    status.textContent = '⚠ нет сети';
+    status.style.color = '#f80';
+  }
+}
 
-// ── START ──
-startBtn.addEventListener('click', async () => {
-  if (!routeNumber) return;
-  await startCamera();
-});
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
 
+// Запуск камеры
 async function startCamera() {
+  const input = document.getElementById('route-input').value.trim();
+  if (!input) {
+    alert('Введите номер маршрута');
+    return;
+  }
+  routeNumber = input.padStart(3, '0');
+  
   try {
-    photoCount = 0;
-    document.getElementById('counter').textContent = '0';
     stream = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
       audio: false
     });
-    const video = document.getElementById('video');
-    video.srcObject = stream;
-    await video.play();
-    showScreen('camera');
-    startClock();
-  } catch(e) {
-    showToast('Нет доступа к камере');
+    document.getElementById('video').srcObject = stream;
+    document.getElementById('setup').style.display = 'none';
+    document.getElementById('camera-view').style.display = 'block';
+    document.getElementById('route-label').textContent = 'Маршрут: ' + routeNumber;
+    
+    startGPS();
+    updateOnlineStatus();
+    loadQueue();
+  } catch(err) {
+    alert('Нет доступа к камере: ' + err.message);
   }
 }
 
-// ── CLOCK ──
-function startClock() {
-  updateWatermark();
-  clockInterval = setInterval(updateWatermark, 1000);
-}
-
-function updateWatermark() {
-  const now = new Date();
-  const date = now.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
-  const time = now.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  document.getElementById('wm-route').textContent = `МАРШРУТ ${routeNumber}`;
-  document.getElementById('wm-time').textContent = `${date}  ${time}`;
-  if (gpsCoords) {
-    document.getElementById('wm-gps').textContent =
-      `${gpsCoords.lat.toFixed(6)}, ${gpsCoords.lon.toFixed(6)}  ±${gpsAccuracy||'?'}м`;
-  } else {
-    document.getElementById('wm-gps').textContent = 'GPS не определён';
-  }
-}
-
-// ── TAKE PHOTO ──
+// Съёмка фото
 async function takePhoto() {
+  const shutter = document.getElementById('shutter');
+  if (shutter.classList.contains('disabled')) return;
+  shutter.classList.add('disabled');
+
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
-
-  // Flash
-  const flash = document.getElementById('flash');
-  flash.classList.add('show');
-  setTimeout(() => flash.classList.remove('show'), 150);
-
-  // Draw video to canvas
   canvas.width = video.videoWidth || 1280;
   canvas.height = video.videoHeight || 720;
+  
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  // Draw watermark
-  drawWatermark(ctx, canvas.width, canvas.height);
-
-  // Save to phone - show preview with save button
-  const filename = buildFilename();
-  canvas.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
+  ctx.drawImage(video, 0, 0);
+  
+  // Водяной знак
+  addWatermark(ctx, canvas.width, canvas.height);
+  
+  // Конвертируем в blob
+  canvas.toBlob(async blob => {
     photoCount++;
-    document.getElementById('counter').textContent = photoCount;
-    showSaveToast(url, filename);
-  }, 'image/jpeg', 0.92);
+    document.getElementById('counter').textContent = photoCount + ' фото';
+    
+    const now = Date.now();
+    const item = {
+      blob: await blobToBase64(blob),
+      route: routeNumber,
+      timestamp: now,
+      lat: gpsData.lat || '',
+      lon: gpsData.lon || '',
+      id: now + '_' + Math.random().toString(36).slice(2,7)
+    };
+    
+    if (navigator.onLine) {
+      // Пробуем сразу загрузить
+      const success = await uploadPhoto(item);
+      if (!success) {
+        uploadQueue.push(item);
+        saveQueue();
+        updateQueueBadge();
+        showNotification('Сохранено в очередь', 'warning');
+      } else {
+        showNotification('✓ Отправлено', 'success');
+      }
+    } else {
+      // Сохраняем в очередь
+      uploadQueue.push(item);
+      saveQueue();
+      updateQueueBadge();
+      showNotification('Сохранено (нет сети)', 'warning');
+    }
+    
+    setTimeout(() => shutter.classList.remove('disabled'), 500);
+  }, 'image/jpeg', 0.85);
 }
 
-function drawWatermark(ctx, w, h) {
+function addWatermark(ctx, w, h) {
   const now = new Date();
-  const date = now.toLocaleDateString('ru-RU', { day:'2-digit', month:'2-digit', year:'numeric' });
-  const time = now.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-
-  // Background gradient
-  const grad = ctx.createLinearGradient(0, h * 0.65, 0, h);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.85)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, h * 0.65, w, h * 0.35);
-
-  const pad = w * 0.025;
-  const base = h - pad;
-
-  // Route (big, red)
-  ctx.font = `bold ${w * 0.055}px 'Arial Black', sans-serif`;
-  ctx.fillStyle = '#e8401c';
-  ctx.fillText(`МАРШРУТ ${routeNumber}`, pad, base - w * 0.095);
-
-  // Date + time
-  ctx.font = `${w * 0.028}px 'Courier New', monospace`;
-  ctx.fillStyle = '#f5f0e8';
-  ctx.fillText(`${date}   ${time}`, pad, base - w * 0.048);
-
+  const dateStr = now.toLocaleDateString('ru-RU');
+  const timeStr = now.toLocaleTimeString('ru-RU');
+  
+  // Фон для текста
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, h - 90, w, 90);
+  
+  // Маршрут
+  ctx.fillStyle = '#ff3333';
+  ctx.font = `bold ${Math.floor(w/15)}px Arial`;
+  ctx.fillText('МАРШРУТ ' + routeNumber, 16, h - 60);
+  
+  // Дата и время
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `${Math.floor(w/30)}px Arial`;
+  ctx.fillText(dateStr + '  ' + timeStr, 16, h - 30);
+  
   // GPS
-  ctx.font = `${w * 0.022}px 'Courier New', monospace`;
-  ctx.fillStyle = '#44aaff';
-  if (gpsCoords) {
-    ctx.fillText(`${gpsCoords.lat.toFixed(6)}, ${gpsCoords.lon.toFixed(6)}   ±${gpsAccuracy||'?'}м`, pad, base - w * 0.01);
+  if (gpsData.lat) {
+    ctx.fillText(`GPS: ${gpsData.lat}, ${gpsData.lon} (±${gpsData.accuracy}м)`, w/2, h - 30);
   } else {
-    ctx.fillStyle = '#e8401c';
-    ctx.fillText('GPS НЕ ОПРЕДЕЛЁН', pad, base - w * 0.01);
+    ctx.fillStyle = '#ff8800';
+    ctx.fillText('GPS: не определён', w/2, h - 30);
   }
 }
 
-function buildFilename() {
-  const now = new Date();
-  const d = now.toISOString().slice(0,10).replace(/-/g,'');
-  const t = now.toTimeString().slice(0,8).replace(/:/g,'');
-  const n = String(photoCount + 1).padStart(3,'0');
-  return `Маршрут${routeNumber}_${n}_${d}_${t}.jpg`;
+// Загрузка на сервер
+async function uploadPhoto(item) {
+  try {
+    const blob = base64ToBlob(item.blob, 'image/jpeg');
+    const formData = new FormData();
+    formData.append('photo', blob, 'photo.jpg');
+    formData.append('route', item.route);
+    formData.append('timestamp', item.timestamp.toString());
+    formData.append('lat', item.lat);
+    formData.append('lon', item.lon);
+    
+    const response = await fetch(WORKER_URL, {
+      method: 'POST',
+      body: formData,
+      signal: AbortSignal.timeout(30000)
+    });
+    
+    const data = await response.json();
+    return data.success === true;
+  } catch(e) {
+    return false;
+  }
 }
 
-// ── BACK ──
-function goBack() {
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  if (clockInterval) { clearInterval(clockInterval); clockInterval = null; }
-  const video = document.getElementById('video');
-  video.srcObject = null;
-  showScreen('setup');
+// Обработка очереди
+async function processQueue() {
+  if (isUploading || uploadQueue.length === 0) return;
+  isUploading = true;
+  
+  while (uploadQueue.length > 0 && navigator.onLine) {
+    const item = uploadQueue[0];
+    const success = await uploadPhoto(item);
+    if (success) {
+      uploadQueue.shift();
+      saveQueue();
+      updateQueueBadge();
+      if (uploadQueue.length === 0) {
+        showNotification('✓ Все фото отправлены', 'success');
+      }
+    } else {
+      break;
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+  
+  isUploading = false;
 }
 
-// ── SCREENS ──
-function showScreen(name) {
-  document.getElementById('setup-screen').classList.toggle('hidden', name !== 'setup');
-  document.getElementById('camera-screen').classList.toggle('hidden', name !== 'camera');
+// Уведомления
+function showNotification(text, type) {
+  const el = document.getElementById('notification');
+  el.textContent = text;
+  el.className = type;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 2500);
 }
 
-// ── TOAST ──
-let toastTimer = null;
-function showToast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  if (toastTimer) clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+// Утилиты base64
+function blobToBase64(blob) {
+  return new Promise(resolve => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(blob);
+  });
 }
 
-function showSaveToast(url, filename) {
-  // Remove existing save bar if any
-  const existing = document.getElementById('save-bar');
-  if (existing) existing.remove();
-
-  const bar = document.createElement('div');
-  bar.id = 'save-bar';
-  bar.style.cssText = `
-    position:fixed;top:0;left:0;right:0;
-    background:rgba(0,0,0,.95);
-    display:flex;align-items:center;gap:12px;
-    padding:10px 16px;z-index:100;
-  `;
-  bar.innerHTML = `
-    <img src="${url}" style="width:48px;height:36px;object-fit:cover;flex-shrink:0;">
-    <span style="flex:1;font-size:10px;letter-spacing:1px;color:#888;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${filename}</span>
-    <a href="${url}" download="${filename}" style="
-      background:#e8401c;color:#f5f0e8;
-      font-family:'Bebas Neue',cursive;font-size:16px;letter-spacing:2px;
-      padding:8px 16px;text-decoration:none;white-space:nowrap;flex-shrink:0;
-    ">СОХРАНИТЬ</a>
-    <button onclick="document.getElementById('save-bar').remove()" style="
-      background:transparent;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px;flex-shrink:0;
-    ">✕</button>
-  `;
-  document.getElementById('camera-screen').appendChild(bar);
-
-  // Auto dismiss after 5 seconds
-  setTimeout(() => { if (bar.parentNode) bar.remove(); }, 5000);
+function base64ToBlob(base64, type) {
+  const arr = base64.split(',');
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while(n--) u8arr[n] = bstr.charCodeAt(n);
+  return new Blob([u8arr], { type });
 }
 
-// ── INIT ──
-startGPS();
+// Проверяем очередь каждые 30 секунд
+setInterval(() => {
+  if (navigator.onLine && uploadQueue.length > 0) processQueue();
+}, 30000);
 </script>
 </body>
 </html>
